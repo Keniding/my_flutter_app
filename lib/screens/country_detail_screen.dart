@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:countries_app/models/country.dart';
+import 'package:countries_app/screens/glassmorphic_title.dart';
 import 'package:flutter/material.dart';
 
 class CountryDetailScreen extends StatelessWidget {
@@ -12,29 +15,41 @@ class CountryDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 300,
             pinned: true,
+            stretch: true,
+            backgroundColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(country.name),
+              title: GlassmorphicTitle(title: country.name),
+              stretchModes: const [
+                StretchMode.zoomBackground,
+                StretchMode.blurBackground,
+              ],
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    country.flag,
-                    fit: BoxFit.cover,
+                  Hero(
+                    tag: 'flag-${country.name}',
+                    child: Image.network(
+                      country.flag,
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  Container(
+                  const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black45,
                         ],
+                        stops: [0.6, 1.0],
                       ),
                     ),
                   ),
@@ -44,7 +59,7 @@ class CountryDetailScreen extends StatelessWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -52,21 +67,21 @@ class CountryDetailScreen extends StatelessWidget {
                     context,
                     'Capital',
                     country.capital,
-                    Icons.location_city,
+                    Icons.location_city_rounded,
                   ),
                   const SizedBox(height: 16),
                   _buildInfoCard(
                     context,
                     'Region',
                     country.region,
-                    Icons.public,
+                    Icons.public_rounded,
                   ),
                   const SizedBox(height: 16),
                   _buildInfoCard(
                     context,
                     'Population',
-                    '${country.population.toString()} people',
-                    Icons.people,
+                    _formatPopulation(country.population),
+                    Icons.groups_rounded,
                   ),
                 ],
               ),
@@ -77,6 +92,15 @@ class CountryDetailScreen extends StatelessWidget {
     );
   }
 
+  String _formatPopulation(int population) {
+    if (population >= 1000000) {
+      return '${(population / 1000000).toStringAsFixed(1)}M people';
+    } else if (population >= 1000) {
+      return '${(population / 1000).toStringAsFixed(1)}K people';
+    }
+    return '$population people';
+  }
+
   Widget _buildInfoCard(
     BuildContext context,
     String title,
@@ -84,50 +108,75 @@ class CountryDetailScreen extends StatelessWidget {
     IconData icon,
   ) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            spreadRadius: 0,
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: const ColorFilter.mode(
-            Colors.white,
-            BlendMode.overlay,
-          ),
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.2),
+                  Colors.white.withOpacity(0.1),
+                ],
               ),
-              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
-                Icon(icon, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
-                    ),
-                    Text(
-                      value,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.8),
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onBackground,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

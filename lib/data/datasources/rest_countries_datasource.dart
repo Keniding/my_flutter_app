@@ -6,20 +6,44 @@ import 'package:countries_app/models/country.dart';
 import 'package:http/http.dart' as http;
 
 class RestCountriesDataSource implements CountryDataSource {
-  static const String baseUrl = 'https://restcountries.com/v3.1/region/Americas';
+  static const String baseUrl = 'https://restcountries.com/v3.1/region';
+  final List<String> regions = [
+    'Americas', 
+    'Europe', 
+    'Asia', 
+    'Africa', 
+    'Oceania',
+    'Antarctic'
+    ];
 
-  @override
-  Future<List<Country>> getCountries() async {
+  // Cambiamos el método para que devuelva un Stream
+  Stream<List<Country>> getCountriesStream() async* {
+    for (final region in regions) {
+      try {
+        final countries = await _getCountriesByRegion(region);
+        yield countries; // Emite los países de cada región conforme se obtienen
+      } catch (e) {
+        print('Error cargando región $region: $e');
+        // Continuamos con la siguiente región si hay error
+        continue;
+      }
+    }
+  }
+
+  // Método original modificado para cargar por región
+  Future<List<Country>> _getCountriesByRegion(String region) async {
     try {
       final response = await http.get(
-        Uri.parse(baseUrl),
+        Uri.parse('$baseUrl/$region'),
         headers: {
           'Accept': 'application/json',
         },
       ).timeout(
-        const Duration(seconds: 60),
+        const Duration(seconds: 30), // Reducimos el timeout por región
         onTimeout: () {
-          throw TimeoutException('La conexión ha excedido el tiempo de espera');
+          throw TimeoutException(
+            'La conexión ha excedido el tiempo de espera para la región $region'
+          );
         },
       );
 
@@ -28,18 +52,24 @@ class RestCountriesDataSource implements CountryDataSource {
         return data.map((json) => _parseCountry(json)).toList();
       } else {
         throw HttpException(
-          'Error al cargar países: ${response.statusCode} - ${response.body}',
+          'Error al cargar países de $region: ${response.statusCode} - ${response.body}',
         );
       }
-    } on TimeoutException catch (e) {
-      throw Exception('Tiempo de espera agotado: $e');
-    } on SocketException catch (e) {
-      throw Exception('Error de conexión: $e');
-    } on HttpException catch (e) {
-      throw Exception('Error HTTP: $e');
     } catch (e) {
-      throw Exception('Error al obtener países: $e');
+      throw Exception('Error al obtener países de $region: $e');
     }
+  }
+
+  // Mantenemos el método original para compatibilidad
+  @override
+  Future<List<Country>> getCountries() async {
+    List<Country> allCountries = [];
+    
+    await for (final countries in getCountriesStream()) {
+      allCountries.addAll(countries);
+    }
+    
+    return allCountries;
   }
 
   Country _parseCountry(Map<String, dynamic> json) {

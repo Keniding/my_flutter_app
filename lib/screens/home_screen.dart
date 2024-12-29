@@ -24,7 +24,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Countries Explorer'),
+        title: const Text(
+          'Countries Explorer',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         centerTitle: true,
         flexibleSpace: Container(
           decoration: BoxDecoration(
